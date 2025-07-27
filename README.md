@@ -12,15 +12,20 @@ What it does
 
 Quick Start
 
+
 Install dependencies
-pip install fastapi uvicorn sqlalchemy psycopg2-binary python-jose passlib python-multipart jinja2
+
+
+pip install -r requirements.txt
 
 
 
 Set up database
 
 Install PostgreSQL
+
 Create a database called chatdb
+
 Update the database URL in config.py if needed
 
 
