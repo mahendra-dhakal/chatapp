@@ -2,7 +2,6 @@ import json
 from fastapi import WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-
 from .models import Message, Room
 from .schemas import MessageWebSocket
 from .manager import manager
@@ -10,15 +9,16 @@ from ..auth.utils import verify_token
 from ..auth.models import User
 from ..database import get_db
 
+
+
 async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str):
-    """Handle WebSocket connections for real-time chat"""
+    """handle WebSocket connections for real-time chat"""
     
-    # Get database session
     db = next(get_db())
     user = None
     
+    
     try:
-        # Verify authentication
         payload = verify_token(token)
         if not payload:
             await websocket.close(code=4001, reason="Invalid or expired token")
@@ -31,16 +31,15 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str):
             await websocket.close(code=4002, reason="User not found or account deactivated")
             return
         
-        # Check if room exists
         room = db.query(Room).filter(Room.id == room_id).first()
         if not room:
             await websocket.close(code=4003, reason="Chat room not found")
             return
         
-        # Connect to room
         await manager.connect(websocket, room_id, user)
         
-        # Send welcome info
+        
+        
         await websocket.send_text(json.dumps({
             'type': 'room_info',
             'room': {
@@ -53,13 +52,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str):
             'message': f'Connected to {room.name}! 🎉'
         }))
         
-        # Listen for messages
+        
         while True:
             try:
                 data = await websocket.receive_text()
                 message_data = json.loads(data)
                 
-                # Validate message format
                 try:
                     msg = MessageWebSocket(**message_data)
                 except Exception as e:
@@ -69,7 +67,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str):
                     }))
                     continue
                 
-                # Save to database
+                # save to database
                 try:
                     db_message = Message(
                         content=msg.content,
@@ -80,7 +78,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str):
                     db.commit()
                     db.refresh(db_message)
                     
-                    # Broadcast to room
+                    
+                    # broadcast to room
                     broadcast_data = {
                         'type': 'message',
                         'id': db_message.id,
@@ -93,6 +92,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str):
                     
                     await manager.broadcast_to_room(room_id, broadcast_data)
                     
+                    
                 except SQLAlchemyError as e:
                     db.rollback()
                     await websocket.send_text(json.dumps({
@@ -100,6 +100,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str):
                         'message': 'Failed to save message. Please try again.'
                     }))
                     print(f"Database error: {e}")
+                
                     
             except WebSocketDisconnect:
                 break
@@ -114,6 +115,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str):
                     'type': 'error',
                     'message': 'Something went wrong. Please refresh and try again.'
                 }))
+                
+                
                 
     except Exception as e:
         print(f"WebSocket connection error: {e}")

@@ -9,14 +9,14 @@ from .admin.router import router as admin_router
 from .analytics.router import router as analytics_router
 from .admin.sqladmin_setup import admin
 
-# Create FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
     description="Real-time chat with admin dashboard and analytics"
 )
 
-# Add CORS middleware
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -25,19 +25,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers
+
+
+
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(admin_router)
 app.include_router(analytics_router)
 
-# Include simple admin interface
+
 app.include_router(admin)
 
-# WebSocket endpoint for real-time chat
+
+
+
 @app.websocket("/ws/{room_id}")
 async def websocket_chat(websocket: WebSocket, room_id: int, token: str):
     await websocket_endpoint(websocket, room_id, token)
+
+
 
 @app.get("/")
 async def welcome():
@@ -58,16 +64,20 @@ async def welcome():
         "note": "Admin interface requires admin role. Create admin user via API first."
     }
 
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "app": settings.APP_NAME}
 
+
+
 @app.on_event("startup")
 async def startup_event():
-    """Initialize application on startup"""
+    """initialize application on startup"""
     create_tables()
     
-    # Create default room if it doesn't exist
+    
     from .chat.models import Room
     db = SessionLocal()
     try:
@@ -92,6 +102,15 @@ async def startup_event():
     print(f"🛠️  Admin Panel: http://localhost:8000/admin/dashboard")
     print(f"📊 Analytics: http://localhost:8000/analytics/overview")
     print(f"📝 Create admin user, then access admin panel\n")
+
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     import uvicorn

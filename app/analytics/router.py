@@ -12,7 +12,13 @@ from ..auth.models import User
 from ..chat.models import Message, Room
 from ..database import get_db
 
+
+
+
+
 router = APIRouter(prefix="/analytics", tags=["analytics"])
+
+
 
 def require_admin_or_moderator(current_user: User = Depends(get_current_active_user)):
     """Only admins and moderators can access analytics"""
@@ -23,6 +29,9 @@ def require_admin_or_moderator(current_user: User = Depends(get_current_active_u
         )
     return current_user
 
+
+
+
 @router.get("/overview")
 async def get_analytics_overview(
     current_user: User = Depends(require_admin_or_moderator),
@@ -30,12 +39,10 @@ async def get_analytics_overview(
 ):
     """Get high-level chat analytics overview"""
     
-    # Basic counts
     total_users = db.query(User).count()
     total_rooms = db.query(Room).count()
     total_messages = db.query(Message).filter(Message.is_deleted == False).count()
     
-    # Active users (messaged in last 7 days)
     week_ago = datetime.now() - timedelta(days=7)
     active_users_count = db.query(func.count(func.distinct(Message.user_id)))\
                          .filter(Message.timestamp >= week_ago, Message.is_deleted == False)\
@@ -56,6 +63,8 @@ async def get_analytics_overview(
      .group_by(Room.id, Room.name)\
      .order_by(desc(func.count(Message.id)))\
      .first()
+    
+    
     
     # Most active user (last 30 days)
     thirty_days_ago = datetime.now() - timedelta(days=30)
@@ -89,6 +98,11 @@ async def get_analytics_overview(
         "generated_at": datetime.now().isoformat()
     }
 
+
+
+
+
+
 @router.get("/messages-per-room")
 async def get_messages_per_room(
     start_date: Optional[date] = Query(None, description="Filter from date (YYYY-MM-DD)"),
@@ -96,7 +110,7 @@ async def get_messages_per_room(
     current_user: User = Depends(require_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
-    """Get message count breakdown by room with optional date filtering"""
+    """Gget message count breakdown by room with optional date filtering"""
     
     query = db.query(
         Room.id,
@@ -109,20 +123,20 @@ async def get_messages_per_room(
         Message.is_deleted == False
     ))
     
-    # Apply date filters if provided
     if start_date:
         query = query.filter(Message.timestamp >= start_date)
+        
     if end_date:
-        # Include the entire end date
         end_datetime = datetime.combine(end_date, datetime.max.time())
         query = query.filter(Message.timestamp <= end_datetime)
     
     results = query.group_by(Room.id, Room.name, Room.description)\
                    .order_by(desc(func.count(Message.id))).all()
     
+    
     room_stats = []
     for room_id, room_name, room_desc, msg_count, unique_users in results:
-        # Get first and last message dates for this room
+        # get first and last message dates for this room
         first_msg = db.query(Message.timestamp).filter(
             Message.room_id == room_id,
             Message.is_deleted == False
@@ -143,6 +157,7 @@ async def get_messages_per_room(
             "last_message": last_msg[0].isoformat() if last_msg else None
         })
     
+    
     return {
         "data": room_stats,
         "filters_applied": {
@@ -156,6 +171,10 @@ async def get_messages_per_room(
         }
     }
 
+
+
+
+
 @router.get("/user-activity")
 async def get_user_activity_stats(
     start_date: Optional[date] = Query(None, description="Filter from date"),
@@ -165,9 +184,10 @@ async def get_user_activity_stats(
     current_user: User = Depends(require_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
-    """Track user participation and activity patterns"""
+    """track user participation and activity patterns"""
     
-    # Build query for user message stats
+    
+    
     message_query = db.query(
         User.id,
         User.username,
@@ -184,9 +204,12 @@ async def get_user_activity_stats(
         Message.is_deleted == False
     ))
     
+    
+    
     # Apply date filters to messages
     if start_date:
         message_query = message_query.filter(Message.timestamp >= start_date)
+        
     if end_date:
         end_datetime = datetime.combine(end_date, datetime.max.time())
         message_query = message_query.filter(Message.timestamp <= end_datetime)
@@ -197,7 +220,7 @@ async def get_user_activity_stats(
      .order_by(desc(func.count(Message.id)))\
      .limit(limit).all()
     
-    # Process results
+    
     user_activity = []
     for result in results:
         user_id, username, email, role, created_at, last_seen, messages_sent, \
@@ -207,6 +230,7 @@ async def get_user_activity_stats(
         if created_at and messages_sent:
             days_since_join = max((datetime.now() - created_at).days, 1)
             activity_score = round(messages_sent / days_since_join, 2)
+            
         else:
             activity_score = 0
         
@@ -242,6 +266,10 @@ async def get_user_activity_stats(
         }
     }
 
+
+
+
+
 @router.get("/export/messages-csv")
 async def export_messages_to_csv(
     room_id: Optional[int] = Query(None, description="Filter by specific room"),
@@ -252,7 +280,6 @@ async def export_messages_to_csv(
 ):
     """Export message data as CSV file"""
     
-    # Build query
     query = db.query(
         Message.id,
         Message.content,
@@ -265,11 +292,14 @@ async def export_messages_to_csv(
     ).join(User, Message.user_id == User.id)\
      .join(Room, Message.room_id == Room.id)
     
+    
     # Apply filters
     if room_id:
         query = query.filter(Message.room_id == room_id)
+        
     if start_date:
         query = query.filter(func.date(Message.timestamp) >= start_date)
+        
     if end_date:
         end_datetime = datetime.combine(end_date, datetime.max.time())
         query = query.filter(Message.timestamp <= end_datetime)
@@ -280,6 +310,7 @@ async def export_messages_to_csv(
     output = io.StringIO()
     writer = csv.writer(output)
     
+    
     # Write header
     writer.writerow([
         'Message ID', 'Content Preview', 'Author', 'Author Role', 
@@ -288,7 +319,6 @@ async def export_messages_to_csv(
     
     # Write data
     for msg in messages:
-        # Truncate content for CSV
         content_preview = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
         content_preview = content_preview.replace('\n', ' ').replace('\r', ' ')
         
@@ -305,15 +335,24 @@ async def export_messages_to_csv(
     
     output.seek(0)
     
-    # Generate filename
+    
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"chat_messages_export_{timestamp}.csv"
+    
+    
     
     return StreamingResponse(
         io.BytesIO(output.getvalue().encode('utf-8')),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+
+
+
+
+
 
 @router.get("/export/user-activity-csv")
 async def export_user_activity_to_csv(
@@ -324,7 +363,8 @@ async def export_user_activity_to_csv(
 ):
     """Export user activity statistics as CSV"""
     
-    # Get user activity data (reuse logic from user-activity endpoint)
+    
+    
     message_query = db.query(
         User.id,
         User.username,
@@ -342,9 +382,12 @@ async def export_user_activity_to_csv(
         Message.is_deleted == False
     ))
     
+    
+    
     # Apply date filters
     if start_date:
         message_query = message_query.filter(Message.timestamp >= start_date)
+        
     if end_date:
         end_datetime = datetime.combine(end_date, datetime.max.time())
         message_query = message_query.filter(Message.timestamp <= end_datetime)
@@ -354,9 +397,11 @@ async def export_user_activity_to_csv(
         User.created_at, User.last_seen, User.is_active
     ).order_by(desc(func.count(Message.id))).all()
     
+    
     # Create CSV
     output = io.StringIO()
     writer = csv.writer(output)
+    
     
     # Header
     writer.writerow([
@@ -364,6 +409,7 @@ async def export_user_activity_to_csv(
         'Account Created', 'Last Seen', 'Total Messages', 'Rooms Used',
         'First Message', 'Last Message'
     ])
+    
     
     # Data
     for row in results:
@@ -383,9 +429,9 @@ async def export_user_activity_to_csv(
     
     output.seek(0)
     
-    # Generate filename
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"user_activity_export_{timestamp}.csv"
+    
     
     return StreamingResponse(
         io.BytesIO(output.getvalue().encode('utf-8')),

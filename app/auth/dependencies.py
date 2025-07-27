@@ -2,12 +2,15 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from datetime import datetime
-
 from .models import User
 from .utils import verify_token
 from ..database import get_db
 
+
+
 security = HTTPBearer()
+
+
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -43,6 +46,8 @@ async def get_current_user(
     db.commit()
     
     return user
+
+
 
 async def get_current_active_user(
     current_user: User = Depends(get_current_user)

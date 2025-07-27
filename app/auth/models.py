@@ -3,6 +3,8 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
 
+
+
 class User(Base):
     __tablename__ = "users"
     
@@ -15,15 +17,19 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     last_seen = Column(DateTime)
     
-    # Relationships
+    
     messages = relationship("Message", back_populates="author", cascade="all, delete-orphan")
+    
+    
     
     def __repr__(self):
         return f"<User {self.username} ({self.role})>"
+ 
     
     @property
     def is_admin(self):
         return self.role == "admin"
+    
     
     @property 
     def is_moderator(self):

@@ -2,16 +2,18 @@ from functools import wraps
 from fastapi import HTTPException, status
 from ..auth.models import User
 
+
+
 def require_admin(func):
-    """Decorator requiring admin role"""
+    """decorator requiring admin role"""
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        # Find current_user in function parameters
         current_user = None
         for key, value in kwargs.items():
             if isinstance(value, User):
                 current_user = value
                 break
+        
         
         if not current_user:
             raise HTTPException(
@@ -28,8 +30,11 @@ def require_admin(func):
         return await func(*args, **kwargs)
     return wrapper
 
+
+
+
 def require_moderator_or_admin(func):
-    """Decorator requiring moderator or admin role"""
+    """decorator requiring moderator or admin role"""
     @wraps(func)
     async def wrapper(*args, **kwargs):
         current_user = None
@@ -53,6 +58,9 @@ def require_moderator_or_admin(func):
         return await func(*args, **kwargs)
     return wrapper
 
+
+
+
 def check_permission(user: User, required_roles: list) -> bool:
-    """Check if user has required role"""
+    """check if user has required role"""
     return user.role in required_roles

@@ -2,25 +2,31 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, and_
 from typing import List
-
 from .models import Message, Room
 from .schemas import MessageResponse, RoomResponse, ChatHistory, MessageUpdate
 from ..auth.dependencies import get_current_active_user
 from ..auth.models import User
 from ..database import get_db
+from datetime import datetime
+
+
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+
+
+
 
 @router.get("/rooms", response_model=List[RoomResponse])
 async def get_available_rooms(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Get list of chat rooms user can access"""
-    # For now, return all public rooms
-    # In the future, you could add room permissions here
+    """get list of chat rooms user can access"""
     rooms = db.query(Room).filter(Room.is_private == False).all()
     return [RoomResponse.from_orm(room) for room in rooms]
+
+
+
 
 @router.get("/rooms/{room_id}", response_model=RoomResponse)
 async def get_room_details(
@@ -28,7 +34,6 @@ async def get_room_details(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Get details for a specific room"""
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(
@@ -36,6 +41,11 @@ async def get_room_details(
             detail="Room not found"
         )
     return RoomResponse.from_orm(room)
+
+
+
+
+
 
 @router.get("/rooms/{room_id}/messages", response_model=ChatHistory)
 async def get_room_messages(
@@ -45,9 +55,8 @@ async def get_room_messages(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Get paginated message history for a room"""
+    """get paginated message history for a room"""
     
-    # Verify room exists
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(
@@ -55,22 +64,23 @@ async def get_room_messages(
             detail="Room not found"
         )
     
-    # Calculate pagination
+    
     offset = (page - 1) * size
     
-    # Get total count of non-deleted messages
+    
+    
     total = db.query(Message).filter(
         Message.room_id == room_id,
         Message.is_deleted == False
     ).count()
     
-    # Get messages for this page (newest first, then reverse for display)
+    
     messages = db.query(Message).filter(
         Message.room_id == room_id,
         Message.is_deleted == False
     ).order_by(desc(Message.timestamp)).offset(offset).limit(size).all()
     
-    # Convert to response format (oldest first for chat display)
+    
     message_responses = []
     for msg in reversed(messages):
         message_responses.append(MessageResponse(
@@ -92,6 +102,9 @@ async def get_room_messages(
         has_more=offset + size < total
     )
 
+
+
+
 @router.put("/messages/{message_id}")
 async def edit_message(
     message_id: int,
@@ -99,7 +112,7 @@ async def edit_message(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Edit your own message"""
+    """edit your own message"""
     
     message = db.query(Message).filter(Message.id == message_id).first()
     
@@ -109,7 +122,6 @@ async def edit_message(
             detail="Message not found"
         )
     
-    # Only author can edit their message
     if message.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -122,13 +134,17 @@ async def edit_message(
             detail="Cannot edit a deleted message"
         )
     
-    # Update message
-    from datetime import datetime
+    # update message
     message.content = update_data.content
     message.edited_at = datetime.utcnow()
     db.commit()
     
     return {"message": "Message updated successfully", "edited_at": message.edited_at}
+
+
+
+
+
 
 @router.delete("/messages/{message_id}")
 async def delete_my_message(
@@ -136,9 +152,10 @@ async def delete_my_message(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Delete your own message"""
+    """delete your own message"""
     
     message = db.query(Message).filter(Message.id == message_id).first()
+    
     
     if not message:
         raise HTTPException(
@@ -146,14 +163,13 @@ async def delete_my_message(
             detail="Message not found"
         )
     
-    # Users can delete their own messages
+    
     if message.user_id != current_user.id and current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only delete your own messages"
         )
     
-    # Soft delete
     message.is_deleted = True
     message.content = "[This message was deleted]"
     db.commit()

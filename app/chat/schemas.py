@@ -2,6 +2,9 @@ from pydantic import BaseModel, validator
 from typing import Optional, List
 from datetime import datetime
 
+
+
+
 class RoomCreate(BaseModel):
     name: str
     description: Optional[str] = None
@@ -13,6 +16,8 @@ class RoomCreate(BaseModel):
             raise ValueError('Room name must be between 1 and 100 characters')
         return v.strip()
 
+
+
 class RoomResponse(BaseModel):
     id: int
     name: str
@@ -23,12 +28,18 @@ class RoomResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+
 class MessageCreate(BaseModel):
     content: str
     room_id: int
 
+
+
+
 class MessageWebSocket(BaseModel):
     content: str
+    
     
     @validator('content')
     def content_must_not_be_empty(cls, v):
@@ -37,6 +48,9 @@ class MessageWebSocket(BaseModel):
         if len(v) > 1000:
             raise ValueError('Message is too long (max 1000 characters)')
         return v.strip()
+
+
+
 
 class MessageResponse(BaseModel):
     id: int
@@ -51,6 +65,9 @@ class MessageResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+
+
 class MessageUpdate(BaseModel):
     content: str
     
@@ -61,6 +78,10 @@ class MessageUpdate(BaseModel):
         if len(v) > 1000:
             raise ValueError('Message is too long (max 1000 characters)')
         return v.strip()
+
+
+
+
 
 class ChatHistory(BaseModel):
     messages: List[MessageResponse]

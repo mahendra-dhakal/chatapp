@@ -3,19 +3,23 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-
 from ..auth.dependencies import get_current_active_user
 from ..auth.models import User
 from ..chat.models import Room, Message
 from ..database import get_db
 from ..config import settings
 
-# Simple admin interface without external dependencies
 admin_router = APIRouter(prefix="/admin", tags=["admin-interface"])
 templates = Jinja2Templates(directory="templates")
 
+
+
+
+
 def require_admin_access(current_user: User = Depends(get_current_active_user)):
-    """Require admin role for admin interface"""
+    """require admin role for admin interface"""
+    
+    
     if current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -23,23 +27,26 @@ def require_admin_access(current_user: User = Depends(get_current_active_user)):
         )
     return current_user
 
+
+
+
+
+
 @admin_router.get("/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(
     request: Request,
     current_user: User = Depends(require_admin_access),
     db: Session = Depends(get_db)
 ):
-    """Admin dashboard with basic statistics"""
+    """admin dashboard with basic statistics"""
     
-    # Get basic stats
     total_users = db.query(User).count()
     total_rooms = db.query(Room).count()
     total_messages = db.query(Message).filter(Message.is_deleted == False).count()
     
-    # Recent users
+    
     recent_users = db.query(User).order_by(User.created_at.desc()).limit(5).all()
     
-    # Most active rooms
     active_rooms = db.query(
         Room.name,
         func.count(Message.id).label('message_count')
@@ -48,6 +55,7 @@ async def admin_dashboard(
      .group_by(Room.id, Room.name)\
      .order_by(func.count(Message.id).desc())\
      .limit(5).all()
+    
     
     return f"""
     <!DOCTYPE html>
@@ -113,6 +121,14 @@ async def admin_dashboard(
     </html>
     """
 
+
+
+
+
+
+
+
+
 @admin_router.get("/users", response_class=HTMLResponse)
 async def admin_users(
     request: Request,
@@ -175,5 +191,6 @@ async def admin_users(
     </html>
     """
 
-# This replaces the complex SQLAdmin setup
+
+
 admin = admin_router

@@ -2,10 +2,13 @@ from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
 from datetime import datetime
 
+
+
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
+    
     
     @validator('username')
     def username_must_be_valid(cls, v):
@@ -15,15 +18,22 @@ class UserCreate(BaseModel):
             raise ValueError('Username can only contain letters, numbers, and underscores')
         return v.lower()
     
+    
     @validator('password')
     def password_must_be_strong(cls, v):
         if len(v) < 6:
             raise ValueError('Password must be at least 6 characters long')
         return v
 
+
+
+
 class UserLogin(BaseModel):
     username: str
     password: str
+
+
+
 
 class UserResponse(BaseModel):
     id: int
@@ -34,13 +44,19 @@ class UserResponse(BaseModel):
     created_at: datetime
     last_seen: Optional[datetime] = None
     
+    
     class Config:
         from_attributes = True
+
+
+
 
 class Token(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+
+
 
 class TokenData(BaseModel):
     username: Optional[str] = None

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
-
 from .models import User
 from .schemas import UserCreate, UserLogin, Token, UserResponse
 from .utils import hash_password, verify_password, create_access_token
@@ -9,11 +8,16 @@ from .dependencies import get_current_active_user
 from ..database import get_db
 from ..config import settings
 
+
+
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+
 
 @router.post("/signup", response_model=dict)
 async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     """Register a new user account"""
+    
     
     # Check if username is taken
     existing_user = db.query(User).filter(User.username == user_data.username).first()
@@ -49,6 +53,9 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
         "username": new_user.username
     }
 
+
+
+
 @router.post("/login", response_model=Token)
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     """Login with username and password"""
@@ -60,6 +67,7 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password"
         )
+    
     
     if not user.is_active:
         raise HTTPException(
@@ -80,10 +88,15 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
         user=UserResponse.from_orm(user)
     )
 
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_my_profile(current_user: User = Depends(get_current_active_user)):
     """Get current user's profile information"""
     return UserResponse.from_orm(current_user)
+
+
+
 
 @router.post("/logout")
 async def logout():
