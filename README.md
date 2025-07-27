@@ -25,7 +25,11 @@ Update the database URL in config.py if needed
 
 
 Run the app
+
+
 uvicorn app.main:app --reload
+
+
 python run.py
 
 Open your browser
