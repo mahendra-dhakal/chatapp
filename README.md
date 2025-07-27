@@ -13,3 +13,23 @@ What it does
 Quick Start
 
 Install dependencies
+pip install fastapi uvicorn sqlalchemy psycopg2-binary python-jose passlib python-multipart jinja2
+
+
+
+Set up database
+
+Install PostgreSQL
+Create a database called chatdb
+Update the database URL in config.py if needed
+
+
+Run the app
+uvicorn app.main:app --reload
+python run.py
+
+Open your browser
+
+
+API docs: http://localhost:8000/docs
+Admin panel: http://localhost:8000/admin/dashboard
